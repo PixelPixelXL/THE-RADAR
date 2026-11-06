@@ -76,6 +76,27 @@
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     const lerp = (a, b, t) => a + (b - a) * t;
 
+    // Ruído determinístico interpolado: cria textura espacial sem flicker aleatório.
+    function noise2D(x, y, scale) {
+        const gx = x / scale;
+        const gy = y / scale;
+        const ix = Math.floor(gx);
+        const iy = Math.floor(gy);
+        const fx0 = gx - ix;
+        const fy0 = gy - iy;
+        const fx = fx0 * fx0 * (3 - 2 * fx0);
+        const fy = fy0 * fy0 * (3 - 2 * fy0);
+
+        const hash = (px, py) => {
+            const value = Math.sin(px * 127.1 + py * 311.7) * 43758.5453;
+            return (value - Math.floor(value)) * 2 - 1;
+        };
+
+        const a = lerp(hash(ix, iy), hash(ix + 1, iy), fx);
+        const b = lerp(hash(ix, iy + 1), hash(ix + 1, iy + 1), fx);
+        return lerp(a, b, fy);
+    }
+
     // Transparente fora dos ecos: evita que CC/Velocity/SRV virem retângulos.
     const overlay = document.createElement("canvas");
     overlay.width = canvas.width;
@@ -179,16 +200,50 @@
         const angle = Math.atan2(dy, dx);
         const radius = Math.hypot(dx, dy);
 
-        // Corpo de precipitação assimétrico.
+        // Campo de precipitação irregular, com textura em várias escalas.
+        // O deslocamento lento do ruído simula pequenas mudanças entre varreduras.
         let deformation = 1;
-        if (angle > -1.5 && angle < 0.5) deformation = 0.78;
-        if (angle > 0.7 && angle < 2.4) deformation = 1.35;
+        if (angle > -1.5 && angle < 0.5) deformation = 0.82;
+        if (angle > 0.7 && angle < 2.4) deformation = 1.28;
 
-        const bodyRadius = radius * deformation;
-        const insideBody = bodyRadius < 48;
+        const drift = ageSeconds * 0.7;
+        const broadTexture = noise2D(x + drift, y - drift * 0.35, 27);
+        const cellTexture = noise2D(x - drift * 0.5, y + drift, 12);
+        const fineTexture = noise2D(x + drift * 0.2, y - drift * 0.2, 5);
+        const edgePerturbation = broadTexture * 8 + cellTexture * 5;
+        const bodyRadius = radius * deformation + edgePerturbation;
+        const edge = 51 + broadTexture * 5;
+        const insideBody = bodyRadius < edge;
+
         let dbz = insideBody
-            ? currentDbz * Math.pow(1 - bodyRadius / 48, 0.72)
+            ? currentDbz * Math.pow(clamp(1 - bodyRadius / edge, 0, 1), 0.62)
             : 0;
+
+        if (insideBody) {
+            // Granulação de reflectividade: pequenas variações sem círculos concêntricos.
+            const textureFactor = clamp(
+                0.91 + broadTexture * 0.10 + cellTexture * 0.13 + fineTexture * 0.12,
+                0.58,
+                1.14
+            );
+            dbz *= textureFactor;
+        }
+
+        // Pequenos bolsões de precipitação assimétricos dentro do eco principal.
+        const lobe1 = Math.hypot(x - (stormX + 17), y - (stormY - 9));
+        const lobe2 = Math.hypot(x - (stormX - 20), y - (stormY + 15));
+        const lobe3 = Math.hypot(x - (stormX + 4), y - (stormY + 28));
+        const lobeNoise = noise2D(x + 13, y - 7, 9);
+        const embeddedCore = Math.max(
+            0,
+            1 - lobe1 / 22,
+            1 - lobe2 / 17,
+            1 - lobe3 / 19
+        );
+        if (embeddedCore > 0) {
+            dbz = Math.max(dbz, currentDbz * embeddedCore *
+                clamp(0.78 + lobeNoise * 0.16, 0.55, 0.96));
+        }
 
         const mesoX = stormX + 15;
         const mesoY = stormY + 25;
@@ -294,12 +349,18 @@
     }
 
     function corDbz(v) {
-        if (v >= 60) return [255, 0, 255];
+        if (v >= 65) return [255, 0, 255];
+        if (v >= 55) return [190, 0, 190];
         if (v >= 50) return [255, 0, 0];
-        if (v >= 40) return [255, 136, 0];
+        if (v >= 45) return [255, 75, 0];
+        if (v >= 40) return [255, 145, 0];
+        if (v >= 35) return [255, 205, 0];
         if (v >= 30) return [255, 255, 0];
-        if (v >= 20) return [0, 255, 0];
-        if (v >= 10) return [0, 187, 187];
+        if (v >= 25) return [130, 255, 0];
+        if (v >= 20) return [0, 220, 0];
+        if (v >= 15) return [0, 190, 100];
+        if (v >= 10) return [0, 190, 210];
+        if (v >= 5) return [0, 100, 255];
         return null;
     }
 
