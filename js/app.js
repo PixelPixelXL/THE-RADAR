@@ -200,50 +200,38 @@
         const angle = Math.atan2(dy, dx);
         const radius = Math.hypot(dx, dy);
 
-        // Campo de precipitação irregular, com textura em várias escalas.
-        // O deslocamento lento do ruído simula pequenas mudanças entre varreduras.
-        let deformation = 1;
-        if (angle > -1.5 && angle < 0.5) deformation = 0.82;
-        if (angle > 0.7 && angle < 2.4) deformation = 1.28;
+        // Mancha de precipitação composta por núcleos elípticos,
+        // em vez de um círculo com anéis concêntricos.
+        const drift = ageSeconds * 0.45;
+        const broad = noise2D(x + drift, y - drift * 0.3, 31);
+        const medium = noise2D(x - drift * 0.4, y + drift, 13);
+        const fine = noise2D(x + drift * 0.2, y - drift * 0.2, 5);
 
-        const drift = ageSeconds * 0.7;
-        const broadTexture = noise2D(x + drift, y - drift * 0.35, 27);
-        const cellTexture = noise2D(x - drift * 0.5, y + drift, 12);
-        const fineTexture = noise2D(x + drift * 0.2, y - drift * 0.2, 5);
-        const edgePerturbation = broadTexture * 8 + cellTexture * 5;
-        const bodyRadius = radius * deformation + edgePerturbation;
-        const edge = 51 + broadTexture * 5;
-        const insideBody = bodyRadius < edge;
+        const px = dx + broad * 12 + medium * 6;
+        const py = dy + broad * 8 + medium * 5;
 
-        let dbz = insideBody
-            ? currentDbz * Math.pow(clamp(1 - bodyRadius / edge, 0, 1), 0.62)
+        const gaussian = (ox, oy, rx, ry) => {
+            const nx = (px - ox) / rx;
+            const ny = (py - oy) / ry;
+            return Math.exp(-0.5 * (nx * nx + ny * ny));
+        };
+
+        // Corpo amplo e três núcleos deslocados: forma irregular de célula.
+        const body = gaussian(0, 0, 43, 31) * 0.68;
+        const coreA = gaussian(15, -10, 17, 13) * 0.95;
+        const coreB = gaussian(-19, 8, 20, 15) * 0.78;
+        const coreC = gaussian(5, 25, 15, 12) * 0.62;
+        const precipitation = Math.max(body, coreA, coreB, coreC);
+
+        const texture = 0.78 + broad * 0.16 + medium * 0.22 + fine * 0.16;
+        let dbz = precipitation > 0.075
+            ? currentDbz * Math.pow(precipitation, 0.72) * texture
             : 0;
 
-        if (insideBody) {
-            // Granulação de reflectividade: pequenas variações sem círculos concêntricos.
-            const textureFactor = clamp(
-                0.91 + broadTexture * 0.10 + cellTexture * 0.13 + fineTexture * 0.12,
-                0.58,
-                1.14
-            );
-            dbz *= textureFactor;
-        }
-
-        // Pequenos bolsões de precipitação assimétricos dentro do eco principal.
-        const lobe1 = Math.hypot(x - (stormX + 17), y - (stormY - 9));
-        const lobe2 = Math.hypot(x - (stormX - 20), y - (stormY + 15));
-        const lobe3 = Math.hypot(x - (stormX + 4), y - (stormY + 28));
-        const lobeNoise = noise2D(x + 13, y - 7, 9);
-        const embeddedCore = Math.max(
-            0,
-            1 - lobe1 / 22,
-            1 - lobe2 / 17,
-            1 - lobe3 / 19
-        );
-        if (embeddedCore > 0) {
-            dbz = Math.max(dbz, currentDbz * embeddedCore *
-                clamp(0.78 + lobeNoise * 0.16, 0.55, 0.96));
-        }
+        // Recortes e bolsões internos quebram a aparência excessivamente lisa.
+        const drySlot = gaussian(1, 7, 12, 8) * 0.34;
+        dbz *= 1 - drySlot;
+        if (precipitation > 0.12 && fine > 0.42) dbz *= 0.72;
 
         const mesoX = stormX + 15;
         const mesoY = stormY + 25;
