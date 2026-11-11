@@ -132,15 +132,3 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     #controls { flex: none; }
     #wrap, #legend { width: 100%; }
 }
-
-
-/* Produtos e controles adicionados */
-.radar-extra select { min-height: 34px; }
-.radar-check { display: flex; align-items: center; gap: 8px; color: #aaa; font-size: 0.82rem; }
-.radar-check input { accent-color: #00ff00; }
-#products { grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); }
-@media (max-width: 800px) {
-    body { padding: 8px; }
-    #controls { max-height: none; }
-    #products { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
