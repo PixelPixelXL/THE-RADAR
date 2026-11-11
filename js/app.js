@@ -303,7 +303,12 @@
     document.querySelectorAll(".btn-product").forEach(b => b.addEventListener("click", () => setProduct(b.dataset.p)));
     Object.values(sl).forEach(e => e.addEventListener("input", refresh));
     sl.rot.addEventListener("change", refresh);
-    elSelect.addEventListener("change", () => { tilt = +elSelect.value; dirty = true; });
+    elSelect.addEventListener("change", () => {
+        tilt = +elSelect.value;
+        const title = $("radar-title");
+        if (title) title.textContent = "Display Principal: " + P[prod].n + " · " + tilt.toFixed(1) + "°";
+        dirty = true;
+    });
     scenarioSelect.addEventListener("change", () => { scenario = scenarioSelect.value; dirty = true; });
     dealiasSelect.addEventListener("change", () => { dealias = dealiasSelect.checked; dirty = true; });
     const reset = $("btn-reset");
