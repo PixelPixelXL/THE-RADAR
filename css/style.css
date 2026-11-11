@@ -47,7 +47,7 @@ input[type="range"], select {
     accent-color: #00ff00;
 }
 
-#products { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 5px; }
+#products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 5px; }
 
 button {
     font: inherit;
@@ -132,3 +132,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
     #controls { flex: none; }
     #wrap, #legend { width: 100%; }
 }
+
+.chk { display: flex; align-items: center; gap: 6px; margin-top: 4px; cursor: pointer; }
+.chk input { accent-color: #00ff00; }
+select:disabled { opacity: 0.45; }
+#stats { width: min(100%, calc(100vh - 190px)); font-size: 0.75rem; color: #9fcf9f; text-align: center; min-height: 1.2em; }
+@media (max-width: 800px) { #stats { width: 100%; } }
