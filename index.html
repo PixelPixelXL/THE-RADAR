@@ -36,6 +36,28 @@
             </div>
 
             <!-- SELETORES DE PRODUTO DO RADAR -->
+            <div class="param radar-extra">
+                <label for="se-tilt">Elevação do feixe:</label>
+                <select id="se-tilt">
+                    <option value="0.5">0,5°</option><option value="0.9">0,9°</option>
+                    <option value="1.3">1,3°</option><option value="1.8">1,8°</option>
+                    <option value="2.4">2,4°</option><option value="3.1">3,1°</option>
+                    <option value="4">4,0°</option><option value="5.1">5,1°</option>
+                    <option value="6.4">6,4°</option><option value="8">8,0°</option>
+                    <option value="10">10,0°</option><option value="12.5">12,5°</option>
+                    <option value="15.6">15,6°</option><option value="19.5">19,5°</option>
+                </select>
+            </div>
+            <div class="param radar-extra">
+                <label for="se-scenario">Cenário meteorológico:</label>
+                <select id="se-scenario">
+                    <option value="super">Supercélula</option>
+                    <option value="line">Linha de instabilidade</option>
+                    <option value="strat">Chuva estratiforme</option>
+                </select>
+            </div>
+            <label class="radar-check"><input type="checkbox" id="se-dealias"> Desdobrar velocidade</label>
+
             <div class="param">
                 <label>Selecionar Produto:</label>
                 <div id="products">
@@ -44,6 +66,9 @@
                     <button id="btn-srv" class="btn-product" data-p="srv" title="Velocidade relativa à tempestade">SRV</button>
                     <button id="btn-cc" class="btn-product" data-p="cc" title="Coeficiente de correlação">CC</button>
                     <button id="btn-kdp" class="btn-product" data-p="kdp" title="Fase diferencial específica">KDP</button>
+                    <button id="btn-sw" class="btn-product" data-p="sw" title="Largura espectral">SW</button>
+                    <button id="btn-vil" class="btn-product" data-p="vil" title="VIL sintético">VIL</button>
+                    <button id="btn-et" class="btn-product" data-p="et" title="Topo de eco estimado">ET</button>
                 </div>
             </div>
 
@@ -64,7 +89,7 @@
                     <div id="readout" hidden></div>
                 </div>
                 <canvas id="legend"></canvas>
-                <p class="note">Todos os campos (Z, V, CC e KDP) são sintéticos. Varredura polar, elevação 0,5°. Passe o mouse sobre o radar para ler o valor. Alertas inspirados em critérios do NWS, simplificados para o jogo.</p>
+                <p class="note">Todos os campos são sintéticos. Produtos VIL e ET são estimativas simplificadas; a elevação altera o perfil simulado do feixe. Passe o mouse sobre o radar para ler o valor. Alertas são simplificados e não representam avisos oficiais.</p>
             </div>
         </div>
     </div>
