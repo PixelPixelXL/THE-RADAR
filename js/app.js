@@ -375,4 +375,25 @@
     cv.addEventListener("pointerleave", () => { if (readout) readout.hidden = true; });
 
     if (typeof ResizeObserver !== "undefined") new ResizeObserver(fit).observe(cv);
-    else window.addEventLi
+    else window.addEventListener("resize", fit);
+ 
+    /* ---------- laço principal ---------- */
+    function frame(now) {
+        const dt = Math.min((now - prevT) / 1000, 0.1);
+        prevT = now;
+        const mot = +sl.m.value;
+        sx += Math.sin(DIRTO) * mot * KMIN * dt;
+        sy += Math.cos(DIRTO) * mot * KMIN * dt;
+        if (sx > 110) { sx = -90; sy = 10; }
+ 
+        since += dt;
+        if (dirty || since > 0.5) { since = 0; dirty = false; scan(); paint(); }
+        sweep = (sweep + dt * 1.6) % TP;
+        overlay();
+        requestAnimationFrame(frame);
+    }
+ 
+    refresh();
+    fit();
+    requestAnimationFrame(frame);
+})();
