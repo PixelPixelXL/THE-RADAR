@@ -150,21 +150,32 @@
     }
 
     /* ---------- pintura: cada pixel da tela consulta o seu bin polar ---------- */
-    function paint() {
-        const s = cv.width, c = s / 2, k = RANGE / c, p = P[prod], data = F[p.f], l = p.l, d = img.data;
-        const min = p.min === undefined ? -Infinity : p.min;
+    let map = null;
+    function buildMap(s) {                       // pixel -> índice do bin (calculado só ao redimensionar)
+        const c = s / 2, k = RANGE / c;
+        map = new Int32Array(s * s);
         for (let py = 0; py < s; py++) {
             const y = (c - py - 0.5) * k;
             for (let px = 0; px < s; px++) {
-                const x = (px + 0.5 - c) * k, r = Math.hypot(x, y), o = (py * s + px) * 4;
-                if (r >= RANGE) { d[o + 3] = 0; continue; }
+                const x = (px + 0.5 - c) * k, r = Math.hypot(x, y);
+                if (r >= RANGE) { map[py * s + px] = -1; continue; }
                 let az = Math.atan2(x, y);
                 if (az < 0) az += TP;
-                const idx = ((az / TP * NAZ) | 0) * NG + ((r / GATE) | 0), v = data[idx];
-                if (F.Z[idx] !== F.Z[idx] || v !== v || v < min) { d[o] = 2; d[o + 1] = 8; d[o + 2] = 4; d[o + 3] = 255; continue; }
-                const n = (Math.max(0, Math.min(255, (v - p.a) / (p.b - p.a) * 255)) | 0) * 4;
-                d[o] = l[n]; d[o + 1] = l[n + 1]; d[o + 2] = l[n + 2]; d[o + 3] = 255;
+                map[py * s + px] = ((az / TP * NAZ) | 0) * NG + ((r / GATE) | 0);
             }
+        }
+    }
+
+    function paint() {
+        const s = cv.width, p = P[prod], data = F[p.f], l = p.l, d = img.data;
+        const min = p.min === undefined ? -Infinity : p.min, n = s * s;
+        for (let q = 0; q < n; q++) {
+            const idx = map[q], o = q * 4;
+            if (idx < 0) { d[o + 3] = 0; continue; }
+            const v = data[idx];
+            if (F.Z[idx] !== F.Z[idx] || v !== v || v < min) { d[o] = 2; d[o + 1] = 8; d[o + 2] = 4; d[o + 3] = 255; continue; }
+            const t = (Math.max(0, Math.min(255, (v - p.a) / (p.b - p.a) * 255)) | 0) * 4;
+            d[o] = l[t]; d[o + 1] = l[t + 1]; d[o + 2] = l[t + 2]; d[o + 3] = 255;
         }
         bctx.putImageData(img, 0, 0);
     }
@@ -209,10 +220,10 @@
     function alertas() {
         const dbz = +sl.dbz.value, w = +sl.w.value, mot = +sl.m.value, rot = sl.rot.value === "1";
         const out = [];
-        if (w >= 58 || dbz > 55) out.push(["severe", "⚠️ Severe Thunderstorm Warning"]);
-        if (mot < 20) out.push(["flood", "🌊 Flash Flood Warning"]);
-        if (rot && w >= 70 && dbz >= 60) out.push(["pds", "🚨 PDS Tornado Warning (Observed TDS)"]);
-        else if (rot) out.push(["tornado", "🌪️ Tornado Warning (Radar Indicated)"]);
+        if (w >= 58 || dbz > 55) out.push(["severe", "⚠️ Severe Thunderstorm Warning — SIMULADO"]);
+        if (mot < 20) out.push(["flood", "🌊 Flash Flood Warning — SIMULADO"]);
+        if (rot && w >= 70 && dbz >= 60) out.push(["pds", "🚨 PDS Tornado Warning (TDS simulado)"]);
+        else if (rot) out.push(["tornado", "🌪️ Tornado Warning (Radar Indicated) — SIMULADO"]);
 
         const key = out.map(a => a[1]).join("|");
         if (key === alertKey) return;
@@ -246,10 +257,11 @@
     }
 
     function fit() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         const s = Math.max(240, Math.round(cv.clientWidth * dpr));
         cv.width = cv.height = buf.width = buf.height = s;
         img = bctx.createImageData(s, s);
+        buildMap(s);
         lg.width = Math.max(200, Math.round(lg.clientWidth * dpr));
         lg.height = Math.round(26 * dpr);
         legend();
@@ -291,7 +303,7 @@
         if (sx > 110) { sx = -90; sy = 10; }
 
         since += dt;
-        if (dirty || since > 0.2) { since = 0; dirty = false; scan(); paint(); }
+        if (dirty || since > 0.5) { since = 0; dirty = false; scan(); paint(); }
         sweep = (sweep + dt * 1.6) % TP;
         overlay();
         requestAnimationFrame(frame);
