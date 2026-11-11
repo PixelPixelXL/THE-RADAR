@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THE RADAR - NEXRAD Simulator</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
     <div id="game-layout">
@@ -92,11 +92,20 @@
                 </div>
                 <canvas id="legend"></canvas>
                 <div id="stats"></div>
-                <p class="note">Todos os campos (Z, V, CC, KDP, ET, VIL e VIL-D) são sintéticos. Varredura polar com geometria de feixe. Passe o mouse sobre o radar para ler o valor. Alertas inspirados em critérios do NWS, simplificados para o jogo.</p>
+                <p class="note">THE-RADAR v3. Todos os campos (Z, V, CC, KDP, ET, VIL e VIL-D) são sintéticos. Varredura polar com geometria de feixe. Passe o mouse sobre o radar para ler o valor. Alertas inspirados em critérios do NWS, simplificados para o jogo.</p>
             </div>
         </div>
     </div>
 
-    <script src="js/app.js?v=2"></script>
+    <script>
+    /* mostra na tela qualquer erro de JavaScript (útil quando não há console aberto) */
+    window.addEventListener("error", function (e) {
+        var b = document.createElement("pre");
+        b.style.cssText = "position:fixed;left:0;right:0;bottom:0;margin:0;padding:8px;background:#7f1d1d;color:#fff;font:12px monospace;z-index:99;white-space:pre-wrap";
+        b.textContent = "ERRO: " + e.message + " (" + String(e.filename || "").split("/").pop() + ":" + e.lineno + ")";
+        document.body.appendChild(b);
+    });
+    </script>
+    <script src="js/app.js?v=3"></script>
 </body>
 </html>
