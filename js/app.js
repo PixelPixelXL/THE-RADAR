@@ -7,6 +7,8 @@
     const lg = $("legend");
     const lx = lg && lg.getContext("2d");
     const sl = { dbz: $("sl-dbz"), w: $("sl-vento"), m: $("sl-desloc"), rot: $("se-couplet") };
+    const elSelect = $("se-tilt"), scenarioSelect = $("se-scenario"), dealiasSelect = $("se-dealias");
+    let tilt = 0.5, scenario = "super", dealias = false;
     if (!cx || !lx || Object.values(sl).some(x => !x)) {
         console.error("THE-RADAR: elementos obrigatórios ausentes.");
         return;
@@ -67,13 +69,19 @@
             st: [[0.2, "#2a0a3a"], [0.5, "#18d8f0"], [0.75, "#2850d0"], [0.85, "#20b070"], [0.9, "#d8d838"],
                 [0.95, "#f08020"], [0.98, "#e01818"], [1, "#e01818"]] },
         kdp: { n: "Fase Diferencial Específica (°/km)", u: "°/km", f: "K", a: 0, b: 6, d: 1, min: 0.3,
-            st: [[0, "#00c800"], [1, "#ffff00"], [2, "#ff2a00"], [4, "#ff00ff"], [6, "#ffffff"]] }
+            st: [[0, "#00c800"], [1, "#ffff00"], [2, "#ff2a00"], [4, "#ff00ff"], [6, "#ffffff"]] },
+        sw: { n: "Largura do Espectro (SW)", u: "mph", f: "W", a: 0, b: 30, d: 1,
+            st: [[0, "#101018"], [3, "#5a5a60"], [5, "#9a9a9a"], [8, "#f09010"], [12, "#e02010"], [16, "#e010a0"], [20, "#a040f0"], [26, "#ffffff"], [30, "#e8f020"]] },
+        vil: { n: "VIL estimado", u: "kg/m²", f: "VL", a: 0, b: 70, d: 1,
+            st: [[0, "#6f8a8c"], [5, "#18b8b8"], [15, "#2a6adf"], [25, "#1a1ac8"], [35, "#18b028"], [45, "#e0c820"], [55, "#e03018"], [65, "#d838b8"], [70, "#ffffff"]] },
+        et: { n: "Topo de Eco estimado", u: "km", f: "ET", a: 0, b: 20, d: 1,
+            st: [[0, "#202830"], [3, "#0aa0c8"], [6, "#1060d0"], [9, "#2a1a90"], [11, "#18b868"], [13, "#10a010"], [15, "#e8d020"], [17, "#e08010"], [18, "#900000"], [20, "#ff3030"]] }
     };
     for (const k in P) P[k].l = mk(P[k].st, P[k].a, P[k].b);
 
     /* ---------- estado ---------- */
     const F = {};
-    for (const k of ["Z", "V", "S", "R", "K"]) F[k] = new Float32Array(NAZ * NG);
+    for (const k of ["Z", "V", "S", "R", "K", "W", "VL", "ET"]) F[k] = new Float32Array(NAZ * NG);
     const buf = document.createElement("canvas");
     const bctx = buf.getContext("2d");
     let img = null;
@@ -82,6 +90,7 @@
     /* ---------- varredura polar: campo da tempestade em cada bin ---------- */
     function scan() {
         const dbzT = +sl.dbz.value, W = +sl.w.value, mot = +sl.m.value, rot = sl.rot.value === "1";
+        const elevFactor = Math.exp(-Math.max(0, tilt - 0.5) * 0.025);
         const mx = Math.sin(DIRTO) * mot, my = Math.cos(DIRTO) * mot;     // movimento da tempestade (mph)
         const Mx = sx + 10, My = sy - 17;                                  // centro da mesociclone
         const tds = rot && W >= 70 && dbzT >= 60;                          // regra do PDS (README)
@@ -107,9 +116,15 @@
                     px = dx + br * 8 + md * 4; py = dy + br * 6 + md * 3;
                     prec = Math.max(g(px, py, 0, 0, 29, 21) * 0.68, g(px, py, 10, -7, 11, 9) * 0.95,
                         g(px, py, -13, 5, 13, 10) * 0.78, g(px, py, 3, 17, 10, 8) * 0.62);
+                    if (scenario === "line") {
+                        prec = Math.max(prec, 0.72 * Math.exp(-Math.pow((px + 0.45 * py - 8) / 6, 2)) *
+                            Math.exp(-Math.pow(py / 58, 2)));
+                    } else if (scenario === "strat") {
+                        prec = Math.max(prec, 0.58 * g(px, py, 0, 0, 58, 48));
+                    }
                     for (const h of hook) prec = Math.max(prec, h[2] * 0.95 * g(x, y, h[0], h[1], 3.2, 3.2));
                     if (prec > 0.075) {
-                        z = dbzT * Math.pow(prec, 0.72) * (0.78 + br * 0.16 + md * 0.22 + fn * 0.16);
+                        z = dbzT * Math.pow(prec, 0.72) * (0.78 + br * 0.16 + md * 0.22 + fn * 0.16) * elevFactor;
                         z *= 1 - g(px, py, 1, -5, 8, 6) * 0.34;
                     }
                 }
@@ -125,6 +140,7 @@
                 if (cl) {
                     F.V[k] = (hs(i, j, 4) - 0.5) * 3; F.S[k] = F.V[k] - base;
                     F.R[k] = 0.45 + 0.3 * hs(i, j, 6); F.K[k] = 0;
+                    F.W[k] = 8 + 7 * hs(i, j, 5); F.VL[k] = 0; F.ET[k] = 0;
                     continue;
                 }
 
@@ -136,7 +152,8 @@
                     const vt = W * (rM < 2.5 ? rM / 2.5 : Math.pow(2.5 / rM, 0.6)) * Math.exp(-rM / 40);
                     u += -mdy / rM * vt; v += mdx / rM * vt;
                 }
-                const vr = u * sa + v * ca + (hs(i, j, 4) - 0.5) * 4;
+                let vr = u * sa + v * ca + (hs(i, j, 4) - 0.5) * 4;
+                if (!dealias) vr = ((vr + 60) % 120 + 120) % 120 - 60;
                 F.V[k] = vr; F.S[k] = vr - base;
 
                 // CC: chuva ~0,985; granizo e bordas fracas caem; TDS abaixo de 0,7
@@ -145,6 +162,20 @@
                 if (tds && rM < 4) rho = 0.5 + 0.15 * hs(i, j, 7);
                 F.R[k] = Math.max(0.2, rho);
                 F.K[k] = Math.max(0, Math.min(6, (z0 - 15) / 12));
+                const mesoBoost = rot ? 10 * Math.exp(-(rM * rM) / 18) : 0;
+                F.W[k] = Math.max(0, Math.min(30, 2.2 + 0.07 * Math.max(0, z0 - 15) +
+                    (hs(i, j, 5) - 0.5) * 2 + mesoBoost));
+                // Integração vertical simplificada: produto didático sintético, não VIL operacional.
+                let vil = 0, echoTop = 0;
+                for (let layer = 0; layer < 10; layer++) {
+                    const layerZ = z0 - layer * (scenario === "strat" ? 3.2 : 5.0);
+                    if (layerZ > 18) {
+                        echoTop = (layer + 1) * 0.5;
+                        vil += 3.44e-6 * Math.pow(Math.pow(10, Math.min(layerZ, 56) / 10), 4 / 7) * 500;
+                    }
+                }
+                F.VL[k] = Math.min(70, vil);
+                F.ET[k] = echoTop;
             }
         }
     }
@@ -251,7 +282,7 @@
         prod = name;
         document.querySelectorAll(".btn-product").forEach(b => b.classList.toggle("active", b.dataset.p === name));
         const t = $("radar-title");
-        if (t) t.textContent = "Display Principal: " + P[name].n;
+        if (t) t.textContent = "Display Principal: " + P[name].n + " · " + tilt.toFixed(1) + "°";
         legend();
         dirty = true;
     }
@@ -272,6 +303,9 @@
     document.querySelectorAll(".btn-product").forEach(b => b.addEventListener("click", () => setProduct(b.dataset.p)));
     Object.values(sl).forEach(e => e.addEventListener("input", refresh));
     sl.rot.addEventListener("change", refresh);
+    elSelect.addEventListener("change", () => { tilt = +elSelect.value; dirty = true; });
+    scenarioSelect.addEventListener("change", () => { scenario = scenarioSelect.value; dirty = true; });
+    dealiasSelect.addEventListener("change", () => { dealias = dealiasSelect.checked; dirty = true; });
     const reset = $("btn-reset");
     if (reset) reset.addEventListener("click", () => { sx = -90; sy = 10; dirty = true; });
 
@@ -310,6 +344,7 @@
     }
 
     refresh();
+    $("radar-title").textContent = "Display Principal: " + P[prod].n + " · 0,5°";
     fit();
     requestAnimationFrame(frame);
 })();
