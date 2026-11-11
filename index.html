@@ -7,29 +7,28 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
     <div id="game-layout">
         <!-- PAINEL LATERAL DE CONTROLES -->
         <div id="controls">
             <h2>Radar &amp; Atmosfera</h2>
-            
+
             <div class="param">
-                <label>Refletividade: <b id="lbl-dbz">45</b> dBZ</label>
+                <label for="sl-dbz">Refletividade: <b id="lbl-dbz">45</b> dBZ</label>
                 <input type="range" id="sl-dbz" min="0" max="75" value="45">
             </div>
 
             <div class="param">
-                <label>Velocidade do Vento: <b id="lbl-vento">40</b> mph</label>
+                <label for="sl-vento">Velocidade do Vento: <b id="lbl-vento">40</b> mph</label>
                 <input type="range" id="sl-vento" min="0" max="120" value="40">
             </div>
 
             <div class="param">
-                <label>Deslocamento do Sistema: <b id="lbl-desloc">25</b> mph</label>
+                <label for="sl-desloc">Deslocamento do Sistema: <b id="lbl-desloc">25</b> mph</label>
                 <input type="range" id="sl-desloc" min="5" max="65" value="25">
             </div>
-            
+
             <div class="param">
-                <label>Velocity Couplet (Rotação):</label>
+                <label for="se-couplet">Velocity Couplet (Rotação):</label>
                 <select id="se-couplet">
                     <option value="0">Ausente</option>
                     <option value="1">Presente (Rotação Forte)</option>
@@ -37,14 +36,18 @@
             </div>
 
             <!-- SELETORES DE PRODUTO DO RADAR -->
-            <div class="param" style="margin-top: 15px;">
+            <div class="param">
                 <label>Selecionar Produto:</label>
-                <div style="display: flex; gap: 5px; margin-top: 5px;">
-                    <button id="btn-dbz" class="btn-product active" style="flex:1; padding:6px; background:#00ff00; color:#000; font-weight:bold; border:none; border-radius:4px; cursor:pointer;">Z (dBZ)</button>
-                    <button id="btn-vento" class="btn-product" style="flex:1; padding:6px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; cursor:pointer;">V (Vel)</button>
-                    <button id="btn-cc" class="btn-product" style="flex:1; padding:6px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; cursor:pointer;">CC</button>
+                <div id="products">
+                    <button id="btn-dbz" class="btn-product active" data-p="dbz" title="Refletividade">Z (dBZ)</button>
+                    <button id="btn-vento" class="btn-product" data-p="vento" title="Velocidade base">V (Vel)</button>
+                    <button id="btn-srv" class="btn-product" data-p="srv" title="Velocidade relativa à tempestade">SRV</button>
+                    <button id="btn-cc" class="btn-product" data-p="cc" title="Coeficiente de correlação">CC</button>
+                    <button id="btn-kdp" class="btn-product" data-p="kdp" title="Fase diferencial específica">KDP</button>
                 </div>
             </div>
+
+            <button id="btn-reset" type="button">↻ Reiniciar tempestade</button>
 
             <div id="alerts-box">
                 <h3>Alertas Ativos</h3>
@@ -56,11 +59,16 @@
         <div id="visuals">
             <div class="screen">
                 <h3 id="radar-title">Display Principal: Refletividade (dBZ)</h3>
-                <canvas id="radarCanvas" width="450" height="450"></canvas>
+                <div id="wrap">
+                    <canvas id="radarCanvas"></canvas>
+                    <div id="readout" hidden></div>
+                </div>
+                <canvas id="legend"></canvas>
+                <p class="note">Varredura polar sintética (elevação 0,5°). Passe o mouse sobre o radar para ler o valor. Alertas inspirados em critérios do NWS, simplificados para o jogo.</p>
             </div>
         </div>
     </div>
 
-    <script src="js/app.js?v=eb9d576"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>
