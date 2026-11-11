@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE RADAR - NEXRAD Simulator</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-layout">
+        <!-- PAINEL LATERAL DE CONTROLES -->
+        <div id="controls">
+            <h2>Radar &amp; Atmosfera</h2>
 
+            <div class="param">
+                <label for="sl-dbz">Refletividade: <b id="lbl-dbz">45</b> dBZ</label>
+                <input type="range" id="sl-dbz" min="0" max="75" value="45">
+            </div>
+
+            <div class="param">
+                <label for="sl-vento">Velocidade do Vento: <b id="lbl-vento">40</b> mph</label>
+                <input type="range" id="sl-vento" min="0" max="120" value="40">
+            </div>
+
+            <div class="param">
+                <label for="sl-desloc">Deslocamento do Sistema: <b id="lbl-desloc">25</b> mph</label>
+                <input type="range" id="sl-desloc" min="5" max="65" value="25">
+            </div>
+
+            <div class="param">
+                <label for="se-couplet">Velocity Couplet (Rotação):</label>
+                <select id="se-couplet">
+                    <option value="0">Ausente</option>
+                    <option value="1">Presente (Rotação Forte)</option>
+                </select>
+            </div>
+
+            <!-- SELETORES DE PRODUTO DO RADAR -->
+            <div class="param">
+                <label>Selecionar Produto:</label>
+                <div id="products">
+                    <button id="btn-dbz" class="btn-product active" data-p="dbz" title="Refletividade">Z (dBZ)</button>
+                    <button id="btn-vento" class="btn-product" data-p="vento" title="Velocidade base">V (Vel)</button>
+                    <button id="btn-srv" class="btn-product" data-p="srv" title="Velocidade relativa à tempestade">SRV</button>
+                    <button id="btn-cc" class="btn-product" data-p="cc" title="Coeficiente de correlação">CC</button>
+                    <button id="btn-kdp" class="btn-product" data-p="kdp" title="Fase diferencial específica">KDP</button>
+                </div>
+            </div>
+
+            <button id="btn-reset" type="button">↻ Reiniciar tempestade</button>
+
+            <div id="alerts-box">
+                <h3>Alertas Ativos</h3>
+                <div id="alerts-list">Monitorando atmosfera...</div>
+            </div>
+        </div>
+
+        <!-- TELA ÚNICA DO RADAR -->
+        <div id="visuals">
+            <div class="screen">
+                <h3 id="radar-title">Display Principal: Refletividade (dBZ)</h3>
+                <div id="wrap">
+                    <canvas id="radarCanvas"></canvas>
+                    <div id="readout" hidden></div>
+                </div>
+                <canvas id="legend"></canvas>
+                <p class="note">Todos os campos (Z, V, CC e KDP) são sintéticos. Varredura polar, elevação 0,5°. Passe o mouse sobre o radar para ler o valor. Alertas inspirados em critérios do NWS, simplificados para o jogo.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js?v=2"></script>
+</body>
+</html>
