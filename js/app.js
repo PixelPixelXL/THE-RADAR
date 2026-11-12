@@ -295,10 +295,12 @@
     function alertas() {
         const dbz = +sl.dbz.value, w = +sl.w.value, mot = +sl.m.value, rot = sl.rot.value === "1";
         const out = [];
-        if (w >= 58 || dbz > 55) out.push(["severe", "⚠️ Severe Thunderstorm Warning — SIMULADO"]);
-        if (mot < 20) out.push(["flood", "🌊 Flash Flood Warning — SIMULADO"]);
-        if (rot && w >= 70 && dbz >= 60) out.push(["pds", "🚨 PDS Tornado Warning (TDS simulado)"]);
-        else if (rot) out.push(["tornado", "🌪️ Tornado Warning (Radar Indicated) — SIMULADO"]);
+        const storm = dbz >= 35;                                   // há tempestade (eco convectivo)
+        if (storm && (w >= 58 || dbz > 55)) out.push(["severe", "⚠️ Severe Thunderstorm Warning — SIMULADO"]);
+        if (!storm && w >= 58) out.push(["wind", "💨 High Wind Warning — SIMULADO"]);
+        if (dbz >= 45 && mot < 20) out.push(["flood", "🌊 Flash Flood Warning — SIMULADO"]);
+        if (storm && rot && w >= 70 && dbz >= 60) out.push(["pds", "🚨 PDS Tornado Warning (TDS simulado)"]);
+        else if (storm && rot) out.push(["tornado", "🌪️ Tornado Warning (Radar Indicated) — SIMULADO"]);
 
         const key = out.map(a => a[1]).join("|");
         if (key === alertKey) return;
@@ -370,30 +372,4 @@
         const idx = ((az / TP * NAZ) | 0) * NG + ((r / GATE) | 0), p = P[prod], v = F[p.f][idx], m = (p.col ? F[p.f] : F.Z)[idx];
         if (m !== m || v !== v || (p.min !== undefined && v < p.min)) { readout.hidden = true; return; }
         readout.hidden = false;
-        readout.textContent = v.toFixed(p.d) + " " + p.u + " · " + Math.round(az / D) + "° · " + r.toFixed(0) + " km";
-    });
-    cv.addEventListener("pointerleave", () => { if (readout) readout.hidden = true; });
-
-    if (typeof ResizeObserver !== "undefined") new ResizeObserver(fit).observe(cv);
-    else window.addEventListener("resize", fit);
- 
-    /* ---------- laço principal ---------- */
-    function frame(now) {
-        const dt = Math.min((now - prevT) / 1000, 0.1);
-        prevT = now;
-        const mot = +sl.m.value;
-        sx += Math.sin(DIRTO) * mot * KMIN * dt;
-        sy += Math.cos(DIRTO) * mot * KMIN * dt;
-        if (sx > 110) { sx = -90; sy = 10; }
- 
-        since += dt;
-        if (dirty || since > 0.5) { since = 0; dirty = false; scan(); paint(); }
-        sweep = (sweep + dt * 1.6) % TP;
-        overlay();
-        requestAnimationFrame(frame);
-    }
- 
-    refresh();
-    fit();
-    requestAnimationFrame(frame);
-})();
+        readout.textContent = v.toFixed(p.d) + " " + p.u + " · " + Math.round(az / D) + "° · " + 
