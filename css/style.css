@@ -77,6 +77,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 }
 .severe  { background-color: #b45309; border: 1px solid #f59e0b; }
 .flood   { background-color: #1d4ed8; border: 1px solid #3b82f6; }
+.wind    { background-color: #8a6d0b; border: 1px solid #daa520; }
 .tornado { background-color: #b91c1c; border: 1px solid #ef4444; animation: flash 1s infinite; }
 .pds     { background-color: #7f1d1d; border: 2px solid #ff4d4d; animation: flash 0.6s infinite; }
 
