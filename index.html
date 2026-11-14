@@ -74,6 +74,19 @@
                 </div>
             </div>
 
+            <div class="param palette-tools">
+                <label for="pal-file">Importar paleta (.PAL)</label>
+                <input type="file" id="pal-file" accept=".pal,.txt">
+                <label for="pal-target">Aplicar paleta em:</label>
+                <select id="pal-target">
+                    <option value="current" selected>Produto selecionado</option>
+                    <option value="all">Todos os produtos</option>
+                </select>
+                <div id="pal-preview" aria-label="Prévia da paleta"></div>
+                <div id="pal-status" role="status">Compatível com JASC-PAL (RGB).</div>
+                <button id="btn-pal-reset" type="button">Restaurar cores padrão</button>
+            </div>
+
             <button id="btn-reset" type="button">↻ Reiniciar tempestade</button>
 
             <div id="alerts-box">
