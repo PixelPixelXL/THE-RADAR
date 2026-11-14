@@ -372,4 +372,30 @@
         const idx = ((az / TP * NAZ) | 0) * NG + ((r / GATE) | 0), p = P[prod], v = F[p.f][idx], m = (p.col ? F[p.f] : F.Z)[idx];
         if (m !== m || v !== v || (p.min !== undefined && v < p.min)) { readout.hidden = true; return; }
         readout.hidden = false;
-        readout.textContent = v.toFixed(p.d) + " " + p.u + " · " + Math.round(az / D) + "° · " + 
+        readout.textContent = v.toFixed(p.d) + " " + p.u + " · " + Math.round(az / D) + "° · " + r.toFixed(0) + " km";
+    });
+    cv.addEventListener("pointerleave", () => { if (readout) readout.hidden = true; });
+
+    if (typeof ResizeObserver !== "undefined") new ResizeObserver(fit).observe(cv);
+    else window.addEventListener("resize", fit);
+
+ /* ---------- laço principal ---------- */
+    function frame(now) {
+        const dt = Math.min((now - prevT) / 1000, 0.1);
+        prevT = now;
+        const mot = +sl.m.value;
+        sx += Math.sin(DIRTO) * mot * KMIN * dt;
+        sy += Math.cos(DIRTO) * mot * KMIN * dt;
+        if (sx > 110) { sx = -90; sy = 10; }
+
+    since += dt;
+        if (dirty || since > 0.5) { since = 0; dirty = false; scan(); paint(); }
+        sweep = (sweep + dt * 1.6) % TP;
+        overlay();
+        requestAnimationFrame(frame);
+    }
+
+    refresh();
+    fit();
+    requestAnimationFrame(frame);
+})();
