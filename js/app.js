@@ -78,7 +78,67 @@
         vild: { n: "VIL Density (g/m³)", u: "g/m³", f: "G", a: 0, b: 6, d: 1, min: 0.3, col: 1,
             st: [[0, "#303844"], [1.5, "#2a6adf"], [2.5, "#18b028"], [3.5, "#e0c820"], [4.5, "#e03018"], [6, "#d838b8"]] }
     };
+
     for (const k in P) P[k].l = mk(P[k].st, P[k].a, P[k].b);
+
+    /* ---------- importação de paletas JASC-PAL ---------- */
+    const PALETTE_KEY = "the-radar-palettes-v1";
+    const productKeys = Object.keys(P);
+    function paletteLut(colors) {
+        const lut = new Uint8ClampedArray(1024);
+        for (let n = 0; n < 256; n++) {
+            const pos = n / 255 * (colors.length - 1);
+            const i = Math.floor(pos), f = pos - i, a = colors[i], b = colors[Math.min(i + 1, colors.length - 1)];
+            for (let ch = 0; ch < 3; ch++) lut[n * 4 + ch] = Math.round(a[ch] + (b[ch] - a[ch]) * f);
+            lut[n * 4 + 3] = 255;
+        }
+        return lut;
+    }
+    function parsePal(source) {
+        const lines = source.replace(/^\\uFEFF/, "").split(/\\r?\\n/).map(x => x.trim()).filter(x => x && !x.startsWith("#") && !x.startsWith(";"));
+        let rows = lines;
+        if (lines[0] && lines[0].toUpperCase() === "JASC-PAL") {
+            if (lines[1] !== "0100" && lines[1] !== "0101") throw new Error("Versão JASC-PAL não suportada.");
+            const count = Number(lines[2]);
+            if (!Number.isInteger(count) || count < 1 || count > 256 || lines.length < count + 3) throw new Error("Quantidade de cores inválida ou arquivo incompleto.");
+            rows = lines.slice(3, 3 + count);
+        }
+        const colors = rows.map(line => {
+            const parts = line.split(/[\\s,;]+/).filter(Boolean);
+            if (parts.length < 3) throw new Error("Linha de cor inválida: " + line);
+            const rgb = parts.slice(0, 3).map(Number);
+            if (rgb.some(v => !Number.isInteger(v) || v < 0 || v > 255)) throw new Error("Valores RGB devem estar entre 0 e 255.");
+            return rgb;
+        });
+        if (!colors.length || colors.length > 256) throw new Error("A paleta precisa ter entre 1 e 256 cores.");
+        return colors;
+    }
+    function loadSavedPalettes() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(PALETTE_KEY) || "{}");
+            for (const key of productKeys) if (Array.isArray(saved[key]) && saved[key].length) P[key].l = paletteLut(saved[key]);
+        } catch (err) { console.warn("THE-RADAR: não foi possível carregar paletas salvas.", err); }
+    }
+    function savePalettes() {
+        const saved = {};
+        for (const key of productKeys) {
+            if (P[key].customColors) saved[key] = P[key].customColors;
+        }
+        try { localStorage.setItem(PALETTE_KEY, JSON.stringify(saved)); }
+        catch (err) { console.warn("THE-RADAR: não foi possível salvar paletas.", err); }
+    }
+    loadSavedPalettes();
+    function showPalettePreview(colors) {
+        const preview = $("pal-preview");
+        if (!preview) return;
+        preview.textContent = "";
+        colors.forEach(rgb => {
+            const swatch = document.createElement("span");
+            swatch.className = "pal-swatch";
+            swatch.style.backgroundColor = "rgb(" + rgb.join(",") + ")";
+            preview.appendChild(swatch);
+        });
+    }
 
     /* ---------- estado ---------- */
     const F = {};
@@ -358,6 +418,37 @@
     Object.values(sl).forEach(e => e.addEventListener("input", refresh));
     sl.rot.addEventListener("change", refresh);
     Object.values(ui).forEach(e => { if (e) e.addEventListener("change", refresh); });
+    const palFile = $("pal-file"), palTarget = $("pal-target"), palStatus = $("pal-status");
+    if (palFile) palFile.addEventListener("change", () => {
+        const file = palFile.files && palFile.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            try {
+                const colors = parsePal(String(reader.result || ""));
+                const targets = palTarget && palTarget.value === "all" ? productKeys : [prod];
+                targets.forEach(key => { P[key].l = paletteLut(colors); P[key].customColors = colors; });
+                savePalettes();
+                showPalettePreview(colors);
+                legend(); dirty = true;
+                if (palStatus) palStatus.textContent = colors.length + " cores importadas em " + (targets.length === 1 ? P[targets[0]].n : "todos os produtos") + ".";
+            } catch (err) {
+                if (palStatus) palStatus.textContent = "Erro: " + err.message;
+            }
+            palFile.value = "";
+        };
+        reader.onerror = () => { if (palStatus) palStatus.textContent = "Não foi possível ler o arquivo."; };
+        reader.readAsText(file);
+    });
+    const palReset = $("btn-pal-reset");
+    if (palReset) palReset.addEventListener("click", () => {
+        for (const key of productKeys) { P[key].l = mk(P[key].st, P[key].a, P[key].b); delete P[key].customColors; }
+        try { localStorage.removeItem(PALETTE_KEY); } catch (err) {}
+        showPalettePreview([]);
+        if (palStatus) palStatus.textContent = "Paletas padrão restauradas.";
+        legend(); dirty = true;
+    });
+
     const reset = $("btn-reset");
     if (reset) reset.addEventListener("click", () => { sx = -90; sy = 10; dirty = true; });
 
