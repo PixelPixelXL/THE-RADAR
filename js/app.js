@@ -95,7 +95,7 @@
         return lut;
     }
     function parsePal(source) {
-        const lines = source.replace(/^\\uFEFF/, "").split(/\\r?\\n/).map(x => x.trim()).filter(x => x && !x.startsWith("#") && !x.startsWith(";"));
+        const lines = source.replace(/^\uFEFF/, "").split(/\r?\n/).map(x => x.trim()).filter(x => x && !x.startsWith("#") && !x.startsWith(";"));
         let rows = lines;
         if (lines[0] && lines[0].toUpperCase() === "JASC-PAL") {
             if (lines[1] !== "0100" && lines[1] !== "0101") throw new Error("Versão JASC-PAL não suportada.");
@@ -104,7 +104,7 @@
             rows = lines.slice(3, 3 + count);
         }
         const colors = rows.map(line => {
-            const parts = line.split(/[\\s,;]+/).filter(Boolean);
+            const parts = line.split(/[\s,;]+/).filter(Boolean);
             if (parts.length < 3) throw new Error("Linha de cor inválida: " + line);
             const rgb = parts.slice(0, 3).map(Number);
             if (rgb.some(v => !Number.isInteger(v) || v < 0 || v > 255)) throw new Error("Valores RGB devem estar entre 0 e 255.");
@@ -116,7 +116,7 @@
     function loadSavedPalettes() {
         try {
             const saved = JSON.parse(localStorage.getItem(PALETTE_KEY) || "{}");
-            for (const key of productKeys) if (Array.isArray(saved[key]) && saved[key].length) P[key].l = paletteLut(saved[key]);
+            for (const key of productKeys) if (Array.isArray(saved[key]) && saved[key].length) { P[key].l = paletteLut(saved[key]); P[key].customColors = saved[key]; }
         } catch (err) { console.warn("THE-RADAR: não foi possível carregar paletas salvas.", err); }
     }
     function savePalettes() {
